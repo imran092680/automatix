@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:replace="~{fragments/layout :: layout('Measurement Units', ~{::main})}">
+    <main>
+        <section class="panel">
+            <form method="post" th:action="@{/measurement-units}" th:object="${measurementUnit}" class="form-row">
+                <input type="hidden" th:field="*{createdBy}">
+                <input type="hidden" th:field="*{updatedBy}">
+                <div><label>Unit</label><input th:field="*{unit}" required></div>
+                <button class="button" type="submit">Add Unit</button>
+            </form>
+        </section>
+        <section class="panel">
+            <table>
+                <thead><tr><th>ID</th><th>Unit</th><th>Action</th></tr></thead>
+                <tbody>
+                <tr th:each="item : ${measurementUnits}">
+                    <td th:text="${item.id}">1</td>
+                    <td th:text="${item.unit}">Unit</td>
+                    <td><form method="post" th:action="@{/measurement-units/{id}/delete(id=${item.id})}"><button class="button danger" type="submit">Delete</button></form></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</section>
+</body>
+</html>

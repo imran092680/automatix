@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:replace="~{fragments/layout :: layout('Cash Out', ~{::main})}">
+    <main>
+        <section class="panel">
+            <form method="get" th:action="@{/cash-out}" class="form-row">
+                <div><label>Date</label><input class="date-input" name="date" type="text" th:value="${date != null ? #temporals.format(date, 'dd-MM-yyyy') : ''}" placeholder="dd-mm-yyyy" autocomplete="off"></div>
+                <button class="button secondary" type="submit">Load</button>
+            </form>
+        </section>
+        <section class="panel">
+            <form method="post" th:action="@{/cash-out}" th:object="${cashOut}" class="form-row">
+                <input type="hidden" th:field="*{createdBy}">
+                <input type="hidden" th:field="*{updatedBy}">
+                <div>
+                    <label>Product</label>
+                    <select th:field="*{productId}">
+                        <option value="">None</option>
+                        <option th:each="product : ${products}" th:value="${product.id}" th:text="${product.name}">Product</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Party</label>
+                    <select th:field="*{partyId}">
+                        <option value="">None</option>
+                        <option th:each="party : ${parties}" th:value="${party.id}" th:text="${party.name}">Party</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Bank</label>
+                    <select th:field="*{bankId}">
+                        <option value="">None</option>
+                        <option th:each="bank : ${banks}" th:value="${bank.id}" th:text="${bank.name}">Bank</option>
+                    </select>
+                </div>
+                <div><label>Quantity</label><input th:field="*{quantity}" type="number" step="0.01"></div>
+                <div><label>Purpose</label><input th:field="*{particulars}" required></div>
+                <div><label>Amount</label><input th:field="*{amount}" type="number" step="0.01" required></div>
+                <div><label>Transaction Date</label><input class="date-input" type="text" id="transactionDate" name="transactionDate" th:value="${cashOut.transactionDate != null ? #temporals.format(cashOut.transactionDate, 'dd-MM-yyyy') : ''}" placeholder="dd-mm-yyyy" autocomplete="off" required></div>
+                <button class="button" type="submit">Add Cash Out</button>
+            </form>
+        </section>
+        <section class="panel">
+            <table>
+                <thead><tr><th>Transaction Date</th><th>Product</th><th>Party</th><th>Bank</th><th>Quantity</th><th>Purpose</th><th>Amount</th><th>Action</th></tr></thead>
+                <tbody>
+                <tr th:each="item : ${cashOuts}">
+                    <td th:text="${#temporals.format(item.transactionDate, 'dd-MM-yyyy')}">Date</td>
+                    <td th:text="${item.productModel != null ? item.productModel.name : '-'}">Product</td>
+                    <td th:text="${item.partyModel != null ? item.partyModel.name : '-'}">Party</td>
+                    <td th:text="${item.bankModel != null ? item.bankModel.name : '-'}">Bank</td>
+                    <td th:text="${item.quantity}">0</td>
+                    <td th:text="${item.particulars}">Purpose</td>
+                    <td th:text="${#numbers.formatDecimal(item.amount, 1, 2)}">0.00</td>
+                    <td><form method="post" th:action="@{/cash-out/{id}/delete(id=${item.id})}"><button class="button danger" type="submit">Delete</button></form></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</section>
+</body>
+</html>

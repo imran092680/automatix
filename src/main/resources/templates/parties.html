@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:replace="~{fragments/layout :: layout('Parties', ~{::main})}">
+    <main>
+        <section class="panel">
+            <form method="post" th:action="@{/parties}" th:object="${party}" class="form-row">
+                <input type="hidden" th:field="*{createdBy}">
+                <input type="hidden" th:field="*{updatedBy}">
+                <div><label>Name</label><input th:field="*{name}" required></div>
+                <div>
+                    <label>Type</label>
+                    <select th:field="*{partyType}" required>
+                        <option value="">Select</option>
+                        <option th:each="type : ${partyTypes}" th:value="${type}" th:text="${type}">TYPE</option>
+                    </select>
+                </div>
+                <div><label>Phone</label><input th:field="*{phoneNumber}"></div>
+                <div><label>Address</label><input th:field="*{address}"></div>
+                <button class="button" type="submit">Add Party</button>
+            </form>
+        </section>
+        <section class="panel">
+            <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Phone</th><th>Address</th><th>Action</th></tr></thead>
+                <tbody>
+                <tr th:each="item : ${parties}">
+                    <td th:text="${item.id}">1</td>
+                    <td th:text="${item.name}">Name</td>
+                    <td th:text="${item.partyType}">Type</td>
+                    <td th:text="${item.phoneNumber}">Phone</td>
+                    <td th:text="${item.address}">Address</td>
+                    <td><form method="post" th:action="@{/parties/{id}/delete(id=${item.id})}"><button class="button danger" type="submit">Delete</button></form></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</section>
+</body>
+</html>

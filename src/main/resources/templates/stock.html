@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:replace="~{fragments/layout :: layout('Stock', ~{::main})}">
+    <main>
+        <section class="panel">
+            <form method="get" th:action="@{/stock}" class="form-row">
+                <div><label>Date</label><input class="date-input" name="date" type="text" th:value="${date != null ? #temporals.format(date, 'dd-MM-yyyy') : ''}" placeholder="dd-mm-yyyy" autocomplete="off"></div>
+                <button class="button secondary" type="submit">Load</button>
+                <a class="button" th:href="@{/api/stock/export(date=${date})}">Download Excel</a>
+            </form>
+        </section>
+        <section class="panel">
+            <form method="post" th:action="@{/stock}" th:object="${stock}" class="form-row">
+                <input type="hidden" th:field="*{createdBy}">
+                <input type="hidden" th:field="*{updatedBy}">
+                <div>
+                    <label>Product</label>
+                    <select th:field="*{productId}" required>
+                        <option value="">Select</option>
+                        <option th:each="product : ${products}" th:value="${product.id}" th:text="${product.name}">Product</option>
+                    </select>
+                </div>
+                <div><label>Purchase Quantity</label><input th:field="*{quantity}" type="number" step="0.01" required></div>
+                <div><label>Transaction Date</label><input class="date-input" type="text" id="transactionDate" name="transactionDate" th:value="${stock.transactionDate != null ? #temporals.format(stock.transactionDate, 'dd-MM-yyyy') : ''}" placeholder="dd-mm-yyyy" autocomplete="off" required></div>
+                <button class="button" type="submit">Add Purchase Stock</button>
+            </form>
+        </section>
+        <section class="panel">
+            <table>
+                <thead><tr><th>Product</th><th>Opening</th><th>Purchased</th><th>Sold</th><th>Remaining</th></tr></thead>
+                <tbody>
+                <tr th:each="item : ${stocks}">
+                    <td th:text="${item.productName}">Product</td>
+                    <td th:text="${#numbers.formatDecimal(item.openingStock, 1, 2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(item.purchased, 1, 2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(item.sold, 1, 2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(item.remainingStock, 1, 2)}">0.00</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</section>
+</body>
+</html>

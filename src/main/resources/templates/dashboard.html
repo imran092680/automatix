@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:replace="~{fragments/layout :: layout('Dashboard', ~{::main})}">
+    <main>
+        <div class="panel">
+            <form method="get" th:action="@{/}" class="form-row">
+                <div>
+                    <label for="date">Report date</label>
+                    <input class="date-input" id="date" name="date" type="text" th:value="${date != null ? #temporals.format(date, 'dd-MM-yyyy') : ''}" placeholder="dd-mm-yyyy" autocomplete="off">
+                </div>
+                <button class="button" type="submit">Load</button>
+            </form>
+        </div>
+
+        <div class="grid grid-4">
+            <div class="stat"><span>Opening Balance</span><strong th:text="${#numbers.formatDecimal(openingBalance, 1, 2)}">0.00</strong></div>
+            <div class="stat"><span>Total Cash In</span><strong th:text="${#numbers.formatDecimal(totalCashIn, 1, 2)}">0.00</strong></div>
+            <div class="stat"><span>Total Sales</span><strong th:text="${#numbers.formatDecimal(totalSales, 1, 2)}">0.00</strong></div>
+            <div class="stat"><span>Grand Total</span><strong th:text="${#numbers.formatDecimal(grandTotal, 1, 2)}">0.00</strong></div>
+            <div class="stat"><span>Total Cash Out</span><strong th:text="${#numbers.formatDecimal(totalCashOut, 1, 2)}">0.00</strong></div>
+            <div class="stat"><span>Total Receivable</span><strong th:text="${#numbers.formatDecimal(totalReceivable, 1, 2)}">0.00</strong></div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top: 20px;">
+            <section class="panel">
+                <h2>Cash In</h2>
+                <table>
+                    <thead><tr><th>Party</th><th>Bank</th><th>Purpose</th><th>Amount</th></tr></thead>
+                    <tbody>
+                    <tr th:each="item : ${cashIns}">
+                        <td th:text="${item.partyModel != null ? item.partyModel.name : '-'}">Party</td>
+                        <td th:text="${item.bankModel != null ? item.bankModel.name : '-'}">Bank</td>
+                        <td th:text="${item.purpose}">Purpose</td>
+                        <td th:text="${#numbers.formatDecimal(item.amount, 1, 2)}">0.00</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="panel">
+                <h2>Cash Out</h2>
+                <table>
+                    <thead><tr><th>Party/Bank/Product</th><th>Purpose</th><th>Amount</th></tr></thead>
+                    <tbody>
+                    <tr th:each="item : ${cashOuts}">
+                        <td th:text="${item.productModel != null ? item.productModel.name : (item.partyModel != null ? item.partyModel.name : (item.bankModel != null ? item.bankModel.name : '-'))}">Name</td>
+                        <td th:text="${item.particulars}">Purpose</td>
+                        <td th:text="${#numbers.formatDecimal(item.amount, 1, 2)}">0.00</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="panel">
+                <h2>Sales</h2>
+                <table>
+                    <thead><tr><th>Party</th><th>Product</th><th>Qty</th><th>Amount</th></tr></thead>
+                    <tbody>
+                    <tr th:each="item : ${sales}">
+                        <td th:text="${item.partyModel.name}">Party</td>
+                        <td th:text="${item.productModel.name}">Product</td>
+                        <td th:text="${item.count}">0</td>
+                        <td th:text="${#numbers.formatDecimal(item.amount, 1, 2)}">0.00</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="panel">
+                <h2>Receivables</h2>
+                <table>
+                    <thead><tr><th>Party</th><th>Amount</th></tr></thead>
+                    <tbody>
+                    <tr th:each="item : ${receivables}">
+                        <td th:text="${item.partyModel != null ? item.partyModel.name : '-'}">Party</td>
+                        <td th:text="${#numbers.formatDecimal(item.amount, 1, 2)}">0.00</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
+</section>
+</body>
+</html>

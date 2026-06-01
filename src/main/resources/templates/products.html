@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:replace="~{fragments/layout :: layout('Products', ~{::main})}">
+    <main>
+        <section class="panel">
+            <form method="post" th:action="@{/products}" th:object="${product}" class="form-row">
+                <input type="hidden" th:field="*{createdBy}">
+                <input type="hidden" th:field="*{updatedBy}">
+                <div><label>Name</label><input th:field="*{name}" required></div>
+                <button class="button" type="submit">Add Product</button>
+            </form>
+        </section>
+        <section class="panel">
+            <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Action</th></tr></thead>
+                <tbody>
+                <tr th:each="item : ${products}">
+                    <td th:text="${item.id}">1</td>
+                    <td th:text="${item.name}">Name</td>
+                    <td><form method="post" th:action="@{/products/{id}/delete(id=${item.id})}"><button class="button danger" type="submit">Delete</button></form></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</section>
+</body>
+</html>
