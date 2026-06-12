@@ -16,6 +16,7 @@
 	<description>Spring Boot and Thymeleaf application for personalized small business solution</description>
 	<properties>
 		<java.version>1.8</java.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<dependencies>
 		<dependency>
