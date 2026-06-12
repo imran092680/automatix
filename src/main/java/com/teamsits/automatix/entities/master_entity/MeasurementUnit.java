@@ -1,6 +1,6 @@
 package com.teamsits.automatix.entities.master_entity;
 
-import com.teamsits.automatix.entities.common.CommonColumn;
+import com.teamsits.automatix.entities.common.TenantAuditBase;
 import com.teamsits.automatix.models.master_models.MeasurementUnitModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,7 +17,7 @@ import javax.persistence.Id;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MeasurementUnit extends CommonColumn {
+public class MeasurementUnit extends TenantAuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

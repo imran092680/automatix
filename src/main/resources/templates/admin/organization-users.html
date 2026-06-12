@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Organization Users', ~{::body/content})}">
+<body>
+<content>
+    <p><a th:href="@{/admin/organizations}">&#8592; Back to Organizations</a></p>
+    <h2>Organization: <span th:text="${org.name}"></span></h2>
+
+    <section>
+        <h3>Add User</h3>
+        <form th:action="@{/admin/organizations/{id}/users(id=${org.id})}" method="post"
+              style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;">
+            <div><label>Username</label><input type="text" name="username" required></div>
+            <div><label>Password</label><input type="password" name="password" required></div>
+            <div><label>Full Name</label><input type="text" name="fullName" required></div>
+            <div><label>Email</label><input type="email" name="email"></div>
+            <div>
+                <label>Role</label>
+                <select name="role">
+                    <option th:each="r : ${roles}" th:value="${r}" th:text="${r}"></option>
+                </select>
+            </div>
+            <button type="submit">Add User</button>
+        </form>
+    </section>
+
+    <section style="margin-top:2rem;">
+        <h3>Users</h3>
+        <table>
+            <thead>
+            <tr><th>#</th><th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="user : ${users}">
+                <td th:text="${user.id}"></td>
+                <td th:text="${user.username}"></td>
+                <td th:text="${user.fullName}"></td>
+                <td th:text="${user.email}"></td>
+                <td th:text="${user.role}"></td>
+                <td th:text="${user.isActive ? 'Yes' : 'No'}"></td>
+                <td>
+                    <form th:action="@{/admin/organizations/{orgId}/users/{userId}/toggle-active(orgId=${org.id},userId=${user.id})}" method="post" style="display:inline;">
+                        <button type="submit" th:text="${user.isActive ? 'Disable' : 'Enable'}"></button>
+                    </form>
+                    &nbsp;
+                    <form th:action="@{/admin/organizations/{orgId}/users/{userId}/delete(orgId=${org.id},userId=${user.id})}" method="post" style="display:inline;"
+                          onsubmit="return confirm('Remove this user?')">
+                        <button type="submit">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(users)}">
+                <td colspan="7">No users in this organization.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</content>
+</body>
+</html>

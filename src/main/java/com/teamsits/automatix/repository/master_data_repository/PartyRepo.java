@@ -11,22 +11,21 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PartyRepo extends JpaRepository<Party, Long> {
-    @Query("SELECT p FROM Party p WHERE p.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO  ORDER BY p.name ASC")
-    List<Party> findPartiesWhereIsDeletedEqualsZero();
 
-    @Query("SELECT p FROM Party p WHERE p.partyType = com.teamsits.automatix.enums.PartyType.PURCHASE_PARTY AND p.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    List<Party> findPurchasePartiesWhereIsDeletedEqualsZero();
+    @Query("SELECT p FROM Party p WHERE p.organization.id = :orgId AND p.isDeleted = 0 ORDER BY p.name ASC")
+    List<Party> findPartiesWhereIsDeletedEqualsZero(@Param("orgId") Long orgId);
 
-    @Query("SELECT p FROM Party p WHERE p.partyType = com.teamsits.automatix.enums.PartyType.SALES_PARTY AND p.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    List<Party> findSalesPartiesWhereIsDeletedEqualsZero();
+    @Query("SELECT p FROM Party p WHERE p.organization.id = :orgId AND p.partyType = com.teamsits.automatix.enums.PartyType.PURCHASE_PARTY AND p.isDeleted = 0")
+    List<Party> findPurchasePartiesWhereIsDeletedEqualsZero(@Param("orgId") Long orgId);
 
-    @Query("SELECT p FROM Party p WHERE p.partyType = com.teamsits.automatix.enums.PartyType.PURCHASE_PARTY AND p.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    Page<Party> findPageByIsDeletedEqualsZero(Pageable pageable);
+    @Query("SELECT p FROM Party p WHERE p.organization.id = :orgId AND p.partyType = com.teamsits.automatix.enums.PartyType.SALES_PARTY AND p.isDeleted = 0")
+    List<Party> findSalesPartiesWhereIsDeletedEqualsZero(@Param("orgId") Long orgId);
 
-    @Query("SELECT p FROM Party p WHERE p.id = :piId AND p.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    Optional<Party> findPartyByIdWhereIsDeletedEqualsZero(@Param("piId") Long id);
+    @Query("SELECT p FROM Party p WHERE p.organization.id = :orgId AND p.partyType = com.teamsits.automatix.enums.PartyType.PURCHASE_PARTY AND p.isDeleted = 0")
+    Page<Party> findPageByIsDeletedEqualsZero(@Param("orgId") Long orgId, Pageable pageable);
 
-    List<Party> findAllByName(String name);
+    @Query("SELECT p FROM Party p WHERE p.organization.id = :orgId AND p.id = :piId AND p.isDeleted = 0")
+    Optional<Party> findPartyByIdWhereIsDeletedEqualsZero(@Param("orgId") Long orgId, @Param("piId") Long id);
 
-    boolean existsPartiesByName(String name);
+    boolean existsByOrganizationIdAndName(Long organizationId, String name);
 }

@@ -1,6 +1,6 @@
 package com.teamsits.automatix.entities.master_entity;
 
-import com.teamsits.automatix.entities.common.CommonColumn;
+import com.teamsits.automatix.entities.common.TenantAuditBase;
 import com.teamsits.automatix.models.master_models.BankModel;
 import com.teamsits.automatix.utils.ApplicationConstant;
 import lombok.AllArgsConstructor;
@@ -11,16 +11,17 @@ import lombok.Setter;
 import javax.persistence.*;
 
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"organization_id", "name"}))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Bank extends CommonColumn {
+public class Bank extends TenantAuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String name;
 
     @Column(columnDefinition = "VARCHAR(40)")

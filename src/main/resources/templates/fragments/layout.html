@@ -1,5 +1,7 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(pageTitle, bodyContent)">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="layout(pageTitle, bodyContent)">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -23,12 +25,22 @@
             <a class="nav-link" th:href="@{/products}">Products</a>
             <a class="nav-link" th:href="@{/parties}">Parties</a>
             <a class="nav-link" th:href="@{/measurement-units}">Units</a>
+            <a class="nav-link" sec:authorize="hasAnyRole('SUPER_ADMIN','ORG_ADMIN')" th:href="@{/org-admin/users}">Manage Users</a>
+            <a class="nav-link" sec:authorize="hasRole('SUPER_ADMIN')" th:href="@{/admin/organizations}">Organizations</a>
         </nav>
+        <div style="margin-top: auto; padding: 1rem 0;">
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="nav-link" style="background:none;border:none;cursor:pointer;width:100%;text-align:left;">Logout</button>
+            </form>
+        </div>
     </aside>
     <main class="content">
         <div class="topbar">
             <h1 class="title" th:text="${pageTitle}">Page</h1>
-            <strong>Abdullah Traders</strong>
+            <div>
+                <strong th:text="${currentOrg != null ? currentOrg.name : ''}"></strong>
+                <span sec:authentication="name" style="margin-left:0.5rem; font-size:0.85em;"></span>
+            </div>
         </div>
         <div th:if="${success}" class="alert success" th:text="${success}"></div>
         <div th:if="${error}" class="alert error" th:text="${error}"></div>

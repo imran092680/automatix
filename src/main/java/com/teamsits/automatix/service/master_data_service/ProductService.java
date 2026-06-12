@@ -4,6 +4,7 @@ import com.teamsits.automatix.entities.master_entity.Product;
 import com.teamsits.automatix.models.master_models.ProductModel;
 import com.teamsits.automatix.repository.master_data_repository.ProductRepo;
 import com.teamsits.automatix.utils.ApplicationConstant;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,54 +16,60 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductService {
     private final ProductRepo productRepo;
+    private final SecurityUtils securityUtils;
 
     public List<ProductModel> getProducts() {
-        return productRepo.findProductsWhereIsDeletedEqualsZero()
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return productRepo.findProductsWhereIsDeletedEqualsZero(orgId)
                 .stream()
                 .map(ProductModel::new)
                 .collect(Collectors.toList());
     }
 
     public Optional<ProductModel> getProductById(Long id) {
-        return productRepo.findProductByIdWhereIsDeletedEqualsZero(id).map(ProductModel::new);
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return productRepo.findProductByIdWhereIsDeletedEqualsZero(orgId, id).map(ProductModel::new);
     }
 
     public Optional<ProductModel> addProduct(ProductModel productModel) {
-        boolean exists = productRepo.findProductsWhereIsDeletedEqualsZero()
-                .stream()
-                .anyMatch(p -> p.getName().equalsIgnoreCase(productModel.getName()));
+        Long orgId = securityUtils.getCurrentOrganizationId();
 
-        if (exists) {
+        if (productRepo.existsByOrganizationIdAndName(orgId, productModel.getName())) {
             throw new IllegalArgumentException(productModel.getName() + " already exists.");
         }
 
-        return Optional.of(new ProductModel(productRepo.save(new Product(productModel))));
+        Product product = new Product(productModel);
+        product.setOrganization(securityUtils.getCurrentOrganization());
+        product.setCreatedBy(securityUtils.getCurrentUserId());
+        product.setUpdatedBy(securityUtils.getCurrentUserId());
+        return Optional.of(new ProductModel(productRepo.save(product)));
     }
 
     public void deleteProduct(Long id) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         if (productRepo.existsById(id)) {
-            Product Product = productRepo
-                    .findProductByIdWhereIsDeletedEqualsZero(id)
+            Product product = productRepo
+                    .findProductByIdWhereIsDeletedEqualsZero(orgId, id)
                     .orElseThrow(() -> new RuntimeException("Product not found."));
 
-            Product.setIsDeleted(ApplicationConstant.DOMAIN_STATUS_ONE);
-            productRepo.save(Product);
+            product.setIsDeleted(ApplicationConstant.DOMAIN_STATUS_ONE);
+            productRepo.save(product);
         }
     }
 
     public Optional<ProductModel> updateProduct(ProductModel productModel) {
-        boolean exists = productRepo.findProductsWhereIsDeletedEqualsZero()
-                .stream()
-                .anyMatch(p -> p.getName().equalsIgnoreCase(productModel.getName()));
+        Long orgId = securityUtils.getCurrentOrganizationId();
 
-        if (exists) {
+        Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(orgId, productModel.getId())
+                .orElseThrow(() -> new RuntimeException("This Product does not exist"));
+
+        if (!product.getName().equals(productModel.getName()) &&
+                productRepo.existsByOrganizationIdAndName(orgId, productModel.getName())) {
             throw new IllegalArgumentException(productModel.getName() + " already exists.");
         }
 
-        Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(productModel.getId())
-                .orElseThrow(() -> new RuntimeException("This Product does not exist"));
-
         product.setName(productModel.getName());
+        product.setUpdatedBy(securityUtils.getCurrentUserId());
 
         return Optional.of(new ProductModel(productRepo.save(product)));
     }

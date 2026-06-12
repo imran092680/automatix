@@ -4,6 +4,7 @@ import com.teamsits.automatix.entities.master_entity.Party;
 import com.teamsits.automatix.models.master_models.PartyModel;
 import com.teamsits.automatix.repository.master_data_repository.PartyRepo;
 import com.teamsits.automatix.utils.ApplicationConstant;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
@@ -20,61 +21,70 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PartyService {
     private final PartyRepo partyRepo;
+    private final SecurityUtils securityUtils;
 
     public List<PartyModel> getParties() {
-        return partyRepo.findPartiesWhereIsDeletedEqualsZero()
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return partyRepo.findPartiesWhereIsDeletedEqualsZero(orgId)
                 .stream()
                 .map(PartyModel::new)
                 .collect(Collectors.toList());
     }
 
     public Page<PartyModel> getPartiesByPage(Integer offset, Integer pageSize, String field, Boolean ascending) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         Pageable pageable = PageRequest.of(
                 offset != null ? offset : 0,
                 pageSize != null ? pageSize : 10,
                 ascending == null || ascending ? Sort.Direction.ASC : Sort.Direction.DESC,
                 StringUtils.isNotBlank(field) ? field : "id"
         );
-        return partyRepo.findPageByIsDeletedEqualsZero(pageable).map(PartyModel::new);
+        return partyRepo.findPageByIsDeletedEqualsZero(orgId, pageable).map(PartyModel::new);
     }
 
     public List<PartyModel> getPurchaseParties() {
-        return partyRepo.findPurchasePartiesWhereIsDeletedEqualsZero()
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return partyRepo.findPurchasePartiesWhereIsDeletedEqualsZero(orgId)
                 .stream()
                 .map(PartyModel::new)
                 .collect(Collectors.toList());
     }
 
     public List<PartyModel> getSalesParties() {
-        return partyRepo.findSalesPartiesWhereIsDeletedEqualsZero()
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return partyRepo.findSalesPartiesWhereIsDeletedEqualsZero(orgId)
                 .stream()
                 .map(PartyModel::new)
                 .collect(Collectors.toList());
     }
 
     public Optional<PartyModel> getPartyById(Long id) {
-        return partyRepo.findPartyByIdWhereIsDeletedEqualsZero(id).map(PartyModel::new);
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return partyRepo.findPartyByIdWhereIsDeletedEqualsZero(orgId, id).map(PartyModel::new);
     }
 
     public Optional<PartyModel> addParty(PartyModel partyModel) {
-        boolean exists = partyRepo.findPartiesWhereIsDeletedEqualsZero()
-                .stream()
-                .anyMatch(p -> p.getName().equalsIgnoreCase(partyModel.getName()));
-        if (exists) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
+
+        if (partyRepo.existsByOrganizationIdAndName(orgId, partyModel.getName())) {
             throw new IllegalArgumentException(partyModel.getName() + " already exists.");
         }
 
         Party party = new Party(partyModel);
+        party.setOrganization(securityUtils.getCurrentOrganization());
+        party.setCreatedBy(securityUtils.getCurrentUserId());
+        party.setUpdatedBy(securityUtils.getCurrentUserId());
         partyRepo.save(party);
 
         return Optional.of(new PartyModel(party));
     }
 
     public void deleteParty(Long id) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         if (partyRepo.existsById(id)) {
             Party party = partyRepo
-                    .findPartyByIdWhereIsDeletedEqualsZero(id)
-                    .orElseThrow(() -> new RuntimeException("PartyInfo not found."));
+                    .findPartyByIdWhereIsDeletedEqualsZero(orgId, id)
+                    .orElseThrow(() -> new RuntimeException("Party not found."));
 
             party.setIsDeleted(ApplicationConstant.DOMAIN_STATUS_ONE);
             partyRepo.save(party);
@@ -82,11 +92,9 @@ public class PartyService {
     }
 
     public Optional<PartyModel> updateParty(PartyModel partyModel) {
-        boolean exists = partyRepo.findPartiesWhereIsDeletedEqualsZero()
-                .stream()
-                .anyMatch(p -> p.getName().equalsIgnoreCase(partyModel.getName()));
+        Long orgId = securityUtils.getCurrentOrganizationId();
 
-        if (exists) {
+        if (partyRepo.existsByOrganizationIdAndName(orgId, partyModel.getName())) {
             throw new IllegalArgumentException(partyModel.getName() + " already exists.");
         }
 
@@ -96,7 +104,7 @@ public class PartyService {
                     party.setName(partyModel.getName());
                     party.setAddress(partyModel.getAddress());
                     party.setPhoneNumber(partyModel.getPhoneNumber());
-
+                    party.setUpdatedBy(securityUtils.getCurrentUserId());
                     return party;
                 })
                 .map(partyRepo::save)

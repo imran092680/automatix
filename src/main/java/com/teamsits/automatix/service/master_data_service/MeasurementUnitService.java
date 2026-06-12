@@ -4,6 +4,7 @@ import com.teamsits.automatix.entities.master_entity.MeasurementUnit;
 import com.teamsits.automatix.models.master_models.MeasurementUnitModel;
 import com.teamsits.automatix.repository.master_data_repository.MeasurementUnitRepo;
 import com.teamsits.automatix.utils.ApplicationConstant;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,37 +16,44 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MeasurementUnitService {
     private final MeasurementUnitRepo measurementUnitRepo;
+    private final SecurityUtils securityUtils;
 
     public List<MeasurementUnitModel> getMeasurementUnits() {
-        return measurementUnitRepo.findMeasurementUnitsWhereIsDeletedEqualsZero()
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return measurementUnitRepo.findMeasurementUnitsWhereIsDeletedEqualsZero(orgId)
                 .stream()
                 .map(MeasurementUnitModel::new)
                 .collect(Collectors.toList());
     }
 
     public Optional<MeasurementUnitModel> getMeasurementUnitById(Long id) {
-        return measurementUnitRepo.findMeasurementUnitByIdWhereIsDeletedEqualsZero(id).map(MeasurementUnitModel::new);
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return measurementUnitRepo.findMeasurementUnitByIdWhereIsDeletedEqualsZero(orgId, id).map(MeasurementUnitModel::new);
     }
 
     public Optional<MeasurementUnitModel> addMeasurementUnit(MeasurementUnitModel measurementUnitModel) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         String unit = measurementUnitModel.getUnit().trim().toLowerCase();
 
-        // Check if a measurement unit with the same name (ignoring case) already exists
-        boolean exists = measurementUnitRepo.findMeasurementUnitsWhereIsDeletedEqualsZero().stream()
+        boolean exists = measurementUnitRepo.findMeasurementUnitsWhereIsDeletedEqualsZero(orgId).stream()
                 .anyMatch(mu -> mu.getUnit().trim().equalsIgnoreCase(unit));
 
         if (exists) {
             throw new RuntimeException("This Measurement Unit already exists.");
         }
 
-        return Optional.of(new MeasurementUnitModel(measurementUnitRepo.save(new MeasurementUnit(measurementUnitModel))));
+        MeasurementUnit mu = new MeasurementUnit(measurementUnitModel);
+        mu.setOrganization(securityUtils.getCurrentOrganization());
+        mu.setCreatedBy(securityUtils.getCurrentUserId());
+        mu.setUpdatedBy(securityUtils.getCurrentUserId());
+        return Optional.of(new MeasurementUnitModel(measurementUnitRepo.save(mu)));
     }
 
-    // update later, make more robust
     public void deleteMeasurementUnit(Long id) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         if (measurementUnitRepo.existsById(id)) {
             MeasurementUnit measurementUnit = measurementUnitRepo
-                    .findMeasurementUnitByIdWhereIsDeletedEqualsZero(id)
+                    .findMeasurementUnitByIdWhereIsDeletedEqualsZero(orgId, id)
                     .orElseThrow(() -> new RuntimeException("MeasurementUnit not found."));
 
             measurementUnit.setIsDeleted(ApplicationConstant.DOMAIN_STATUS_ONE);
@@ -54,10 +62,13 @@ public class MeasurementUnitService {
     }
 
     public Optional<MeasurementUnitModel> updateMeasurementUnit(MeasurementUnitModel measurementUnitModel) {
-        MeasurementUnit measurementUnit = measurementUnitRepo.findMeasurementUnitByIdWhereIsDeletedEqualsZero(measurementUnitModel.getId())
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        MeasurementUnit measurementUnit = measurementUnitRepo
+                .findMeasurementUnitByIdWhereIsDeletedEqualsZero(orgId, measurementUnitModel.getId())
                 .orElseThrow(() -> new RuntimeException("This MeasurementUnit does not exist"));
 
         measurementUnit.setUnit(measurementUnitModel.getUnit());
+        measurementUnit.setUpdatedBy(securityUtils.getCurrentUserId());
 
         return Optional.of(new MeasurementUnitModel(measurementUnitRepo.save(measurementUnit)));
     }

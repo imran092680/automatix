@@ -1,6 +1,6 @@
 package com.teamsits.automatix.entities;
 
-import com.teamsits.automatix.entities.common.CommonColumn;
+import com.teamsits.automatix.entities.common.TenantAuditBase;
 import com.teamsits.automatix.entities.master_entity.Party;
 import com.teamsits.automatix.entities.master_entity.Product;
 import com.teamsits.automatix.models.sales.SalesRequest;
@@ -17,7 +17,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Sales extends CommonColumn {
+public class Sales extends TenantAuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

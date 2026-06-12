@@ -10,10 +10,10 @@ import com.teamsits.automatix.models.cash_out.CashOutResponse;
 import com.teamsits.automatix.repository.CashOutRepo;
 import com.teamsits.automatix.repository.StockRepo;
 import com.teamsits.automatix.repository.master_data_repository.BankRepo;
-import com.teamsits.automatix.repository.master_data_repository.MeasurementUnitRepo;
 import com.teamsits.automatix.repository.master_data_repository.PartyRepo;
 import com.teamsits.automatix.repository.master_data_repository.ProductRepo;
 import com.teamsits.automatix.utils.ApplicationConstant;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,38 +32,42 @@ public class CashOutService {
     private final ProductRepo productRepo;
     private final BankRepo bankRepo;
     private final StockRepo stockRepo;
+    private final SecurityUtils securityUtils;
 
     public List<CashOutResponse> getCashOutsByDate(LocalDate date) {
-        return cashOutRepo.findCashOutsByDateWhereIsDeletedEqualsZero(date)
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return cashOutRepo.findCashOutsByDateWhereIsDeletedEqualsZero(orgId, date)
                 .stream()
                 .map(CashOutResponse::new)
                 .collect(Collectors.toList());
     }
 
     public Optional<CashOutResponse> getCashOutById(Long id) {
-        return cashOutRepo.findCashOutByIdWhereIsDeletedEqualsZero(id).map(CashOutResponse::new);
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return cashOutRepo.findCashOutByIdWhereIsDeletedEqualsZero(orgId, id).map(CashOutResponse::new);
     }
 
     @Transactional
     public Optional<CashOutResponse> addCashOut(CashOutRequest cashOutRequest) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        Long userId = securityUtils.getCurrentUserId();
+
         Party party = null;
         if (cashOutRequest.getPartyId() != null) {
-            party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(cashOutRequest.getPartyId())
+            party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(orgId, cashOutRequest.getPartyId())
                     .orElseThrow(() -> new RuntimeException("Party by ID : " + cashOutRequest.getPartyId() + " not found."));
-
-
         }
 
         Bank bank = null;
         if (cashOutRequest.getBankId() != null) {
-            bank = bankRepo.findBankByIdWhereIsDeletedEqualsZero(cashOutRequest.getBankId())
+            bank = bankRepo.findBankByIdWhereIsDeletedEqualsZero(orgId, cashOutRequest.getBankId())
                     .orElseThrow(() -> new RuntimeException("Bank by ID : " + cashOutRequest.getBankId() + " not found."));
         }
 
         Product product = null;
         Stock stock = null;
         if (cashOutRequest.getProductId() != null) {
-            product = productRepo.findProductByIdWhereIsDeletedEqualsZero(cashOutRequest.getProductId())
+            product = productRepo.findProductByIdWhereIsDeletedEqualsZero(orgId, cashOutRequest.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product by ID : " + cashOutRequest.getProductId() + " not found."));
 
             if (bank != null || party != null) {
@@ -71,24 +75,29 @@ public class CashOutService {
             }
 
             stock = new Stock(product, cashOutRequest);
+            stock.setOrganization(securityUtils.getCurrentOrganization());
+            stock.setCreatedBy(userId);
+            stock.setUpdatedBy(userId);
             stockRepo.save(stock);
         }
 
-        return Optional.of(cashOutRepo.save(new CashOut(cashOutRequest, product, party, bank, stock)))
-                .map(CashOutResponse::new);
+        CashOut cashOut = new CashOut(cashOutRequest, product, party, bank, stock);
+        cashOut.setOrganization(securityUtils.getCurrentOrganization());
+        cashOut.setCreatedBy(userId);
+        cashOut.setUpdatedBy(userId);
+        return Optional.of(cashOutRepo.save(cashOut)).map(CashOutResponse::new);
     }
 
     @Transactional
     public void deleteCashOut(Long id) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         if (cashOutRepo.existsById(id)) {
             CashOut cashOut = cashOutRepo
-                    .findCashOutByIdWhereIsDeletedEqualsZero(id)
-                    .orElseThrow(() -> new EntityNotFoundException("ExpenseBank not found."));
+                    .findCashOutByIdWhereIsDeletedEqualsZero(orgId, id)
+                    .orElseThrow(() -> new EntityNotFoundException("CashOut not found."));
 
-            Stock stock;
             if (cashOut.getStock() != null) {
-                stock = cashOut.getStock();
-
+                Stock stock = cashOut.getStock();
                 stock.setIsDeleted(ApplicationConstant.DOMAIN_STATUS_ONE);
                 cashOut.setStock(stock);
                 stockRepo.save(stock);
@@ -101,57 +110,55 @@ public class CashOutService {
 
     @Transactional
     public Optional<CashOutResponse> updateCashOut(CashOutRequest cashOutRequest) {
-        Party party;
-        if (cashOutRequest.getPartyId() != null) {
-            party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(cashOutRequest.getPartyId())
-                    .orElseThrow(() -> new EntityNotFoundException("Party not Found"));
+        Long orgId = securityUtils.getCurrentOrganizationId();
 
-        } else {
-            party = null;
+        Party party = null;
+        if (cashOutRequest.getPartyId() != null) {
+            party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(orgId, cashOutRequest.getPartyId())
+                    .orElseThrow(() -> new EntityNotFoundException("Party not Found"));
         }
 
-        Product product;
-        Stock stock;
+        Product product = null;
+        Stock stock = null;
         if (cashOutRequest.getProductId() != null) {
-            product = productRepo.findProductByIdWhereIsDeletedEqualsZero(cashOutRequest.getProductId())
+            product = productRepo.findProductByIdWhereIsDeletedEqualsZero(orgId, cashOutRequest.getProductId())
                     .orElseThrow(() -> new EntityNotFoundException("Product not Found"));
 
-            stock = cashOutRepo.findCashOutByIdWhereIsDeletedEqualsZero(cashOutRequest.getId())
+            stock = cashOutRepo.findCashOutByIdWhereIsDeletedEqualsZero(orgId, cashOutRequest.getId())
                     .map(CashOut::getStock)
                     .orElseThrow(() -> new EntityNotFoundException("Product found but Stock not Found"));
-        } else {
-            product = null;
-            stock = null;
         }
 
-        Bank bank;
+        Bank bank = null;
         if (cashOutRequest.getBankId() != null) {
             bank = bankRepo.findById(cashOutRequest.getBankId())
                     .orElseThrow(() -> new EntityNotFoundException("Bank not Found"));
-        } else {
-            bank = null;
         }
 
         if (product != null && (party != null || bank != null)) {
             throw new RuntimeException("Party and Bank cannot co-exist with Product");
         }
 
-        return cashOutRepo.findCashOutByIdWhereIsDeletedEqualsZero(cashOutRequest.getId())
+        final Product finalProduct = product;
+        final Stock finalStock = stock;
+        final Party finalParty = party;
+        final Bank finalBank = bank;
+        return cashOutRepo.findCashOutByIdWhereIsDeletedEqualsZero(orgId, cashOutRequest.getId())
                 .map((CashOut cashOut) -> {
-                    cashOut.setParty(party);
-                    cashOut.setProduct(product);
-                    cashOut.setBank(bank);
+                    cashOut.setParty(finalParty);
+                    cashOut.setProduct(finalProduct);
+                    cashOut.setBank(finalBank);
                     cashOut.setQuantity(cashOutRequest.getQuantity());
                     cashOut.setParticulars(cashOutRequest.getParticulars());
                     cashOut.setAmount(cashOutRequest.getAmount());
                     cashOut.setTransactionDate(cashOutRequest.getTransactionDate());
+                    cashOut.setUpdatedBy(securityUtils.getCurrentUserId());
 
-                    if (product != null && stock != null) {
-                        stock.setQuantity(cashOutRequest.getQuantity());
-                        stock.setTransactionDate(cashOutRequest.getTransactionDate());
-
-                        stockRepo.save(stock);
-                        cashOut.setStock(stock);
+                    if (finalProduct != null && finalStock != null) {
+                        finalStock.setQuantity(cashOutRequest.getQuantity());
+                        finalStock.setTransactionDate(cashOutRequest.getTransactionDate());
+                        stockRepo.save(finalStock);
+                        cashOut.setStock(finalStock);
                     }
 
                     return cashOut;

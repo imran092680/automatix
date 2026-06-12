@@ -10,9 +10,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CashOutRepo extends JpaRepository<CashOut, Long> {
-    @Query("SELECT co FROM CashOut co WHERE co.transactionDate = :date AND co.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO ORDER BY co.transactionDate ASC, co.id ASC")
-    List<CashOut> findCashOutsByDateWhereIsDeletedEqualsZero(@Param("date") LocalDate date);
 
-    @Query("SELECT co FROM CashOut co WHERE co.id = :ebId AND co.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    Optional<CashOut> findCashOutByIdWhereIsDeletedEqualsZero(@Param("ebId") Long id);
+    @Query("SELECT co FROM CashOut co WHERE co.organization.id = :orgId AND co.transactionDate = :date AND co.isDeleted = 0 ORDER BY co.transactionDate ASC, co.id ASC")
+    List<CashOut> findCashOutsByDateWhereIsDeletedEqualsZero(@Param("orgId") Long orgId, @Param("date") LocalDate date);
+
+    @Query("SELECT co FROM CashOut co WHERE co.organization.id = :orgId AND co.id = :ebId AND co.isDeleted = 0")
+    Optional<CashOut> findCashOutByIdWhereIsDeletedEqualsZero(@Param("orgId") Long orgId, @Param("ebId") Long id);
 }

@@ -1,6 +1,6 @@
 package com.teamsits.automatix.entities;
 
-import com.teamsits.automatix.entities.common.CommonColumn;
+import com.teamsits.automatix.entities.common.TenantAuditBase;
 import com.teamsits.automatix.entities.master_entity.Party;
 import com.teamsits.automatix.models.receivable.ReceivableRequest;
 import lombok.AllArgsConstructor;
@@ -16,7 +16,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Receivable extends CommonColumn {
+public class Receivable extends TenantAuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

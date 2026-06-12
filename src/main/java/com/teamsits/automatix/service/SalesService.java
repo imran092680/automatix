@@ -11,6 +11,7 @@ import com.teamsits.automatix.repository.StockRepo;
 import com.teamsits.automatix.repository.master_data_repository.PartyRepo;
 import com.teamsits.automatix.repository.master_data_repository.ProductRepo;
 import com.teamsits.automatix.utils.ApplicationConstant;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,27 +29,40 @@ public class SalesService {
     private final ProductRepo productRepo;
     private final StockRepo stockRepo;
     private final PartyRepo partyRepo;
+    private final SecurityUtils securityUtils;
 
     public List<SalesResponse> getSalesByDate(LocalDate date) {
-        return salesRepo.findSalesInfosByDateWhereIsDeletedEqualsZero(date)
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return salesRepo.findSalesInfosByDateWhereIsDeletedEqualsZero(orgId, date)
                 .stream()
                 .map(SalesResponse::new)
                 .collect(Collectors.toList());
     }
 
     public Optional<SalesResponse> getSalesById(Long id) {
-        return salesRepo.findSalesInfoByIdWhereIsDeletedEqualsZero(id).map(SalesResponse::new);
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return salesRepo.findSalesInfoByIdWhereIsDeletedEqualsZero(orgId, id).map(SalesResponse::new);
     }
 
     public Optional<SalesResponse> addSales(SalesRequest salesRequest) {
-        Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(salesRequest.getProductId())
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        Long userId = securityUtils.getCurrentUserId();
+
+        Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(orgId, salesRequest.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("Product not Found"));
 
-        Party party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(salesRequest.getPartyId())
+        Party party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(orgId, salesRequest.getPartyId())
                 .orElseThrow(() -> new EntityNotFoundException("Party not Found"));
 
         Stock stock = new Stock(product, salesRequest);
+        stock.setOrganization(securityUtils.getCurrentOrganization());
+        stock.setCreatedBy(userId);
+        stock.setUpdatedBy(userId);
+
         Sales sales = new Sales(salesRequest, product, party, stock);
+        sales.setOrganization(securityUtils.getCurrentOrganization());
+        sales.setCreatedBy(userId);
+        sales.setUpdatedBy(userId);
 
         stockRepo.save(stock);
         salesRepo.save(sales);
@@ -58,19 +72,22 @@ public class SalesService {
 
     @Transactional
     public Optional<SalesResponse> updateSales(SalesRequest salesRequest) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
+
         Sales sales = salesRepo.findById(salesRequest.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Sales Data not Found"));
 
-        Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(salesRequest.getProductId())
+        Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(orgId, salesRequest.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("Product not Found"));
 
-        Party party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(salesRequest.getPartyId())
+        Party party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(orgId, salesRequest.getPartyId())
                 .orElseThrow(() -> new EntityNotFoundException("Party not Found"));
 
         Stock stock = sales.getStock();
         stock.setQuantity(salesRequest.getCount());
         stock.setProduct(product);
         stock.setTransactionDate(salesRequest.getTransactionDate());
+        stock.setUpdatedBy(securityUtils.getCurrentUserId());
         stockRepo.save(stock);
 
         return salesRepo.findById(salesRequest.getId())
@@ -82,7 +99,7 @@ public class SalesService {
                     s.setPricePerUnit(salesRequest.getPricePerUnit());
                     s.setAmount(salesRequest.getAmount());
                     s.setTransactionDate(salesRequest.getTransactionDate());
-
+                    s.setUpdatedBy(securityUtils.getCurrentUserId());
                     return s;
                 })
                 .map(salesRepo::save)
@@ -90,9 +107,10 @@ public class SalesService {
     }
 
     public void deleteSales(Long id) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         if (salesRepo.existsById(id)) {
             Sales sales = salesRepo
-                    .findSalesInfoByIdWhereIsDeletedEqualsZero(id)
+                    .findSalesInfoByIdWhereIsDeletedEqualsZero(orgId, id)
                     .orElseThrow(() -> new RuntimeException("SalesInfo not found."));
 
             sales.setIsDeleted(ApplicationConstant.DOMAIN_STATUS_ONE);

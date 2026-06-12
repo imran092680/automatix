@@ -9,9 +9,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepo extends JpaRepository<Product, Long> {
-    @Query("SELECT p FROM Product p WHERE p.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO  ORDER BY p.name ASC")
-    List<Product> findProductsWhereIsDeletedEqualsZero();
 
-    @Query("SELECT p FROM Product p WHERE p.id = :productId AND p.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    Optional<Product> findProductByIdWhereIsDeletedEqualsZero(@Param("productId") Long id);
+    @Query("SELECT p FROM Product p WHERE p.organization.id = :orgId AND p.isDeleted = 0 ORDER BY p.name ASC")
+    List<Product> findProductsWhereIsDeletedEqualsZero(@Param("orgId") Long orgId);
+
+    @Query("SELECT p FROM Product p WHERE p.organization.id = :orgId AND p.id = :productId AND p.isDeleted = 0")
+    Optional<Product> findProductByIdWhereIsDeletedEqualsZero(@Param("orgId") Long orgId, @Param("productId") Long id);
+
+    boolean existsByOrganizationIdAndName(Long organizationId, String name);
 }

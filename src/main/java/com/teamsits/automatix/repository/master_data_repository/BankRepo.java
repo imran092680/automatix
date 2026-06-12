@@ -9,9 +9,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface BankRepo extends JpaRepository<Bank, Long> {
-    @Query("SELECT u FROM Bank u WHERE u.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO ORDER BY u.name ASC")
-    List<Bank> findBanksWhereIsDeletedEqualsZero();
 
-    @Query("SELECT u FROM Bank u WHERE u.id = :bankId AND u.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    Optional<Bank> findBankByIdWhereIsDeletedEqualsZero(@Param("bankId") Long id);
+    @Query("SELECT u FROM Bank u WHERE u.organization.id = :orgId AND u.isDeleted = 0 ORDER BY u.name ASC")
+    List<Bank> findBanksWhereIsDeletedEqualsZero(@Param("orgId") Long orgId);
+
+    @Query("SELECT u FROM Bank u WHERE u.organization.id = :orgId AND u.id = :bankId AND u.isDeleted = 0")
+    Optional<Bank> findBankByIdWhereIsDeletedEqualsZero(@Param("orgId") Long orgId, @Param("bankId") Long id);
+
+    boolean existsByOrganizationIdAndName(Long organizationId, String name);
 }

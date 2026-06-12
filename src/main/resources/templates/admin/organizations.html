@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Organizations', ~{::body/content})}">
+<body>
+<content>
+    <section>
+        <h2>Create Organization</h2>
+        <form th:action="@{/admin/organizations}" method="post" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;">
+            <div>
+                <label>Name</label>
+                <input type="text" name="name" required>
+            </div>
+            <div>
+                <label>Subscription</label>
+                <select name="subscriptionType">
+                    <option th:each="st : ${subscriptionTypes}" th:value="${st}" th:text="${st}"></option>
+                </select>
+            </div>
+            <div>
+                <label>Max Users (PER_USER only)</label>
+                <input type="number" name="maxUsers" min="1">
+            </div>
+            <div>
+                <label>Agreement Notes</label>
+                <input type="text" name="agreementNotes">
+            </div>
+            <button type="submit">Create</button>
+        </form>
+    </section>
+
+    <section style="margin-top:2rem;">
+        <h2>All Organizations</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Subscription</th>
+                <th>Max Users</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="org : ${organizations}">
+                <td th:text="${org.id}"></td>
+                <td th:text="${org.name}"></td>
+                <td th:text="${org.subscriptionType}"></td>
+                <td th:text="${org.maxUsers != null ? org.maxUsers : 'Unlimited'}"></td>
+                <td th:text="${org.isActive ? 'Yes' : 'No'}"></td>
+                <td>
+                    <a th:href="@{/admin/organizations/{id}/users(id=${org.id})}">Users</a>
+                    &nbsp;
+                    <form th:action="@{/admin/organizations/{id}/delete(id=${org.id})}" method="post" style="display:inline;"
+                          onsubmit="return confirm('Deactivate this organization?')">
+                        <button type="submit">Deactivate</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(organizations)}">
+                <td colspan="6">No organizations yet.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</content>
+</body>
+</html>

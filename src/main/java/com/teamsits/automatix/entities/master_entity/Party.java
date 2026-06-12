@@ -1,6 +1,6 @@
 package com.teamsits.automatix.entities.master_entity;
 
-import com.teamsits.automatix.entities.common.CommonColumn;
+import com.teamsits.automatix.entities.common.TenantAuditBase;
 import com.teamsits.automatix.enums.PartyType;
 import com.teamsits.automatix.models.master_models.PartyModel;
 import lombok.AllArgsConstructor;
@@ -11,11 +11,12 @@ import lombok.Setter;
 import javax.persistence.*;
 
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"organization_id", "name"}))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Party extends CommonColumn {
+public class Party extends TenantAuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,7 +25,7 @@ public class Party extends CommonColumn {
     @Column(nullable = false)
     private PartyType partyType;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String name;
 
     private String address;

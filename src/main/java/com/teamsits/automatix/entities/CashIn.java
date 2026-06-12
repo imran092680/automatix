@@ -1,6 +1,6 @@
 package com.teamsits.automatix.entities;
 
-import com.teamsits.automatix.entities.common.CommonColumn;
+import com.teamsits.automatix.entities.common.TenantAuditBase;
 import com.teamsits.automatix.entities.master_entity.Bank;
 import com.teamsits.automatix.entities.master_entity.Party;
 import com.teamsits.automatix.models.cash_in.CashInRequest;
@@ -17,7 +17,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CashIn extends CommonColumn {
+public class CashIn extends TenantAuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

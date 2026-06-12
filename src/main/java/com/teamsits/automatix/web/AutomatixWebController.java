@@ -19,6 +19,7 @@ import com.teamsits.automatix.service.master_data_service.BankService;
 import com.teamsits.automatix.service.master_data_service.MeasurementUnitService;
 import com.teamsits.automatix.service.master_data_service.PartyService;
 import com.teamsits.automatix.service.master_data_service.ProductService;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -36,7 +37,6 @@ import java.time.format.DateTimeFormatter;
 @Controller
 @RequiredArgsConstructor
 public class AutomatixWebController {
-    private static final long SYSTEM_USER = 0L;
 
     private final BankService bankService;
     private final ProductService productService;
@@ -47,10 +47,15 @@ public class AutomatixWebController {
     private final SalesService salesService;
     private final ReceivableService receivableService;
     private final StockService stockService;
+    private final SecurityUtils securityUtils;
 
     @ModelAttribute
     void shared(Model model) {
         model.addAttribute("appName", "Automatix");
+        try {
+            model.addAttribute("currentOrg", securityUtils.getCurrentOrganization());
+        } catch (Exception ignored) {
+        }
     }
 
     @GetMapping("/")
@@ -82,14 +87,14 @@ public class AutomatixWebController {
 
     @GetMapping("/banks")
     public String banks(Model model) {
-        model.addAttribute("bank", withAudit(new BankModel()));
+        model.addAttribute("bank", new BankModel());
         model.addAttribute("banks", bankService.getBanks());
         return "banks";
     }
 
     @PostMapping("/banks")
     public String addBank(@ModelAttribute BankModel bank, RedirectAttributes redirectAttributes) {
-        return save(() -> bankService.addBank(withAudit(bank)), "/banks", redirectAttributes);
+        return save(() -> bankService.addBank(bank), "/banks", redirectAttributes);
     }
 
     @PostMapping("/banks/{id}/delete")
@@ -99,14 +104,14 @@ public class AutomatixWebController {
 
     @GetMapping("/products")
     public String products(Model model) {
-        model.addAttribute("product", withAudit(new ProductModel()));
+        model.addAttribute("product", new ProductModel());
         model.addAttribute("products", productService.getProducts());
         return "products";
     }
 
     @PostMapping("/products")
     public String addProduct(@ModelAttribute ProductModel product, RedirectAttributes redirectAttributes) {
-        return save(() -> productService.addProduct(withAudit(product)), "/products", redirectAttributes);
+        return save(() -> productService.addProduct(product), "/products", redirectAttributes);
     }
 
     @PostMapping("/products/{id}/delete")
@@ -116,14 +121,14 @@ public class AutomatixWebController {
 
     @GetMapping("/measurement-units")
     public String measurementUnits(Model model) {
-        model.addAttribute("measurementUnit", withAudit(new MeasurementUnitModel()));
+        model.addAttribute("measurementUnit", new MeasurementUnitModel());
         model.addAttribute("measurementUnits", measurementUnitService.getMeasurementUnits());
         return "measurement-units";
     }
 
     @PostMapping("/measurement-units")
     public String addMeasurementUnit(@ModelAttribute MeasurementUnitModel measurementUnit, RedirectAttributes redirectAttributes) {
-        return save(() -> measurementUnitService.addMeasurementUnit(withAudit(measurementUnit)), "/measurement-units", redirectAttributes);
+        return save(() -> measurementUnitService.addMeasurementUnit(measurementUnit), "/measurement-units", redirectAttributes);
     }
 
     @PostMapping("/measurement-units/{id}/delete")
@@ -133,7 +138,7 @@ public class AutomatixWebController {
 
     @GetMapping("/parties")
     public String parties(Model model) {
-        model.addAttribute("party", withAudit(new PartyModel()));
+        model.addAttribute("party", new PartyModel());
         model.addAttribute("parties", partyService.getParties());
         model.addAttribute("partyTypes", PartyType.values());
         return "parties";
@@ -141,7 +146,7 @@ public class AutomatixWebController {
 
     @PostMapping("/parties")
     public String addParty(@ModelAttribute PartyModel party, RedirectAttributes redirectAttributes) {
-        return save(() -> partyService.addParty(withAudit(party)), "/parties", redirectAttributes);
+        return save(() -> partyService.addParty(party), "/parties", redirectAttributes);
     }
 
     @PostMapping("/parties/{id}/delete")
@@ -152,7 +157,7 @@ public class AutomatixWebController {
     @GetMapping("/cash-in")
     public String cashIn(@RequestParam(value = "date", required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate date, Model model) {
         LocalDate selectedDate = date != null ? date : LocalDate.now();
-        CashInRequest request = withAudit(new CashInRequest());
+        CashInRequest request = new CashInRequest();
         request.setTransactionDate(selectedDate);
         request.setMemoDate(selectedDate);
 
@@ -165,7 +170,7 @@ public class AutomatixWebController {
 
     @PostMapping("/cash-in")
     public String addCashIn(@ModelAttribute CashInRequest cashIn, RedirectAttributes redirectAttributes) {
-        return save(() -> cashInService.addCashIn(withAudit(cashIn)), "/cash-in?date=" + cashIn.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
+        return save(() -> cashInService.addCashIn(cashIn), "/cash-in?date=" + cashIn.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
     }
 
     @PostMapping("/cash-in/{id}/delete")
@@ -176,7 +181,7 @@ public class AutomatixWebController {
     @GetMapping("/cash-out")
     public String cashOut(@RequestParam(value = "date", required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate date, Model model) {
         LocalDate selectedDate = date != null ? date : LocalDate.now();
-        CashOutRequest request = withAudit(new CashOutRequest());
+        CashOutRequest request = new CashOutRequest();
         request.setTransactionDate(selectedDate);
 
         model.addAttribute("date", selectedDate);
@@ -188,7 +193,7 @@ public class AutomatixWebController {
 
     @PostMapping("/cash-out")
     public String addCashOut(@ModelAttribute CashOutRequest cashOut, RedirectAttributes redirectAttributes) {
-        return save(() -> cashOutService.addCashOut(withAudit(cashOut)), "/cash-out?date=" + cashOut.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
+        return save(() -> cashOutService.addCashOut(cashOut), "/cash-out?date=" + cashOut.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
     }
 
     @PostMapping("/cash-out/{id}/delete")
@@ -199,7 +204,7 @@ public class AutomatixWebController {
     @GetMapping("/sales")
     public String sales(@RequestParam(value = "date", required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate date, Model model) {
         LocalDate selectedDate = date != null ? date : LocalDate.now();
-        SalesRequest request = withAudit(new SalesRequest());
+        SalesRequest request = new SalesRequest();
         request.setTransactionDate(selectedDate);
         request.setDiscount(0D);
 
@@ -218,7 +223,7 @@ public class AutomatixWebController {
             double discount = sale.getDiscount() != null ? sale.getDiscount() : 0D;
             sale.setAmount((count * price) - discount);
         }
-        return save(() -> salesService.addSales(withAudit(sale)), "/sales?date=" + sale.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
+        return save(() -> salesService.addSales(sale), "/sales?date=" + sale.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
     }
 
     @PostMapping("/sales/{id}/delete")
@@ -229,7 +234,7 @@ public class AutomatixWebController {
     @GetMapping("/receivables")
     public String receivables(@RequestParam(value = "date", required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate date, Model model) {
         LocalDate selectedDate = date != null ? date : LocalDate.now();
-        ReceivableRequest request = withAudit(new ReceivableRequest());
+        ReceivableRequest request = new ReceivableRequest();
         request.setTransactionDate(selectedDate);
 
         model.addAttribute("date", selectedDate);
@@ -241,7 +246,7 @@ public class AutomatixWebController {
 
     @PostMapping("/receivables")
     public String addReceivable(@ModelAttribute ReceivableRequest receivable, RedirectAttributes redirectAttributes) {
-        return save(() -> receivableService.addReceivable(withAudit(receivable)), "/receivables?date=" + receivable.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
+        return save(() -> receivableService.addReceivable(receivable), "/receivables?date=" + receivable.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
     }
 
     @PostMapping("/receivables/{id}/delete")
@@ -252,7 +257,7 @@ public class AutomatixWebController {
     @GetMapping("/stock")
     public String stock(@RequestParam(value = "date", required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate date, Model model) {
         LocalDate selectedDate = date != null ? date : LocalDate.now();
-        StockRequest request = withAudit(new StockRequest());
+        StockRequest request = new StockRequest();
         request.setTransactionDate(selectedDate);
 
         model.addAttribute("date", selectedDate);
@@ -264,23 +269,13 @@ public class AutomatixWebController {
 
     @PostMapping("/stock")
     public String addStock(@ModelAttribute StockRequest stock, RedirectAttributes redirectAttributes) {
-        return save(() -> stockService.addStock(withAudit(stock)), "/stock?date=" + stock.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
+        return save(() -> stockService.addStock(stock), "/stock?date=" + stock.getTransactionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), redirectAttributes);
     }
 
     private void addLookups(Model model) {
         model.addAttribute("banks", bankService.getBanks());
         model.addAttribute("products", productService.getProducts());
         model.addAttribute("parties", partyService.getParties());
-    }
-
-    private <T extends com.teamsits.automatix.models.common.CommonModel> T withAudit(T model) {
-        if (model.getCreatedBy() == null) {
-            model.setCreatedBy(SYSTEM_USER);
-        }
-        if (model.getUpdatedBy() == null) {
-            model.setUpdatedBy(SYSTEM_USER);
-        }
-        return model;
     }
 
     private String save(Runnable action, String redirectTo, RedirectAttributes redirectAttributes) {

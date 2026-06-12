@@ -4,6 +4,7 @@ import com.teamsits.automatix.entities.master_entity.Bank;
 import com.teamsits.automatix.models.master_models.BankModel;
 import com.teamsits.automatix.repository.master_data_repository.BankRepo;
 import com.teamsits.automatix.utils.ApplicationConstant;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,34 +17,40 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BankService {
     private final BankRepo bankRepo;
+    private final SecurityUtils securityUtils;
 
     public List<BankModel> getBanks() {
-        return bankRepo.findBanksWhereIsDeletedEqualsZero()
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return bankRepo.findBanksWhereIsDeletedEqualsZero(orgId)
                 .stream()
                 .map(BankModel::new)
                 .collect(Collectors.toList());
     }
 
     public Optional<BankModel> getBankById(Long id) {
-        return bankRepo.findBankByIdWhereIsDeletedEqualsZero(id).map(BankModel::new);
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return bankRepo.findBankByIdWhereIsDeletedEqualsZero(orgId, id).map(BankModel::new);
     }
 
     public Optional<BankModel> addBank(BankModel bankModel) {
-        boolean exists = bankRepo.findBanksWhereIsDeletedEqualsZero()
-                .stream()
-                .anyMatch(bank -> bank.getName().equalsIgnoreCase(bankModel.getName()));
+        Long orgId = securityUtils.getCurrentOrganizationId();
 
-        if (exists) {
+        if (bankRepo.existsByOrganizationIdAndName(orgId, bankModel.getName())) {
             throw new IllegalArgumentException(bankModel.getName() + " already exists.");
         }
 
-        return Optional.of(new BankModel(bankRepo.save(new Bank(bankModel))));
+        Bank bank = new Bank(bankModel);
+        bank.setOrganization(securityUtils.getCurrentOrganization());
+        bank.setCreatedBy(securityUtils.getCurrentUserId());
+        bank.setUpdatedBy(securityUtils.getCurrentUserId());
+        return Optional.of(new BankModel(bankRepo.save(bank)));
     }
 
     public void deleteBank(Long id) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         if (bankRepo.existsById(id)) {
             Bank bank = bankRepo
-                    .findBankByIdWhereIsDeletedEqualsZero(id)
+                    .findBankByIdWhereIsDeletedEqualsZero(orgId, id)
                     .orElseThrow(() -> new RuntimeException("Bank not found."));
 
             bank.setIsDeleted(ApplicationConstant.DOMAIN_STATUS_ONE);
@@ -52,24 +59,19 @@ public class BankService {
     }
 
     public Optional<BankModel> updateBank(BankModel bankModel) {
-        boolean exists = bankRepo.findBanksWhereIsDeletedEqualsZero()
-                .stream()
-                .anyMatch(bank -> bank.getName().equalsIgnoreCase(bankModel.getName()));
+        Long orgId = securityUtils.getCurrentOrganizationId();
 
-        if (exists) {
+        Bank bank = bankRepo.findBankByIdWhereIsDeletedEqualsZero(orgId, bankModel.getId())
+                .orElseThrow(() -> new RuntimeException("This Bank does not exist"));
+
+        if (!Objects.equals(bank.getName(), bankModel.getName()) &&
+                bankRepo.existsByOrganizationIdAndName(orgId, bankModel.getName())) {
             throw new IllegalArgumentException(bankModel.getName() + " already exists.");
         }
 
-        Bank bank = bankRepo.findBankByIdWhereIsDeletedEqualsZero(bankModel.getId())
-                .orElseThrow(() -> new RuntimeException("This Bank does not exist"));
-
-        if (!Objects.equals(bank.getName(), bankModel.getName())) {
-            bank.setName(bankModel.getName());
-        }
-
-        if (!Objects.equals(bank.getPrefix(), bankModel.getPrefix())) {
-            bank.setPrefix(bankModel.getPrefix());
-        }
+        bank.setName(bankModel.getName());
+        bank.setPrefix(bankModel.getPrefix());
+        bank.setUpdatedBy(securityUtils.getCurrentUserId());
 
         return Optional.of(new BankModel(bankRepo.save(bank)));
     }

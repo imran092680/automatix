@@ -8,6 +8,7 @@ import com.teamsits.automatix.models.stock.StockRequest;
 import com.teamsits.automatix.models.stock.StockResponse;
 import com.teamsits.automatix.repository.StockRepo;
 import com.teamsits.automatix.repository.master_data_repository.ProductRepo;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -26,26 +27,36 @@ import java.util.Optional;
 public class StockService {
     private final StockRepo stockRepo;
     private final ProductRepo productRepo;
+    private final SecurityUtils securityUtils;
 
     public List<StockPerProductByDateResponse> getStocksPerProductByDate(LocalDate currentDate) {
-        return stockRepo.getStockDataByDate(currentDate);
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return stockRepo.getStockDataByDate(orgId, currentDate);
     }
 
     public Optional<StockResponse> addStock(StockRequest stockRequest) {
-        final Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(stockRequest.getProductId())
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        Long userId = securityUtils.getCurrentUserId();
+
+        final Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(orgId, stockRequest.getProductId())
                 .orElseThrow(() -> new RuntimeException("Product by ID : " + stockRequest.getProductId() + " not found."));
 
         final Stock stock = new Stock(product, stockRequest);
+        stock.setOrganization(securityUtils.getCurrentOrganization());
+        stock.setCreatedBy(userId);
+        stock.setUpdatedBy(userId);
         stockRepo.save(stock);
 
         return Optional.of(new StockResponse(stock));
     }
 
     public Double getAvailableStockByProductId(Long productId, LocalDate date) {
-        Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(productId)
+        Long orgId = securityUtils.getCurrentOrganizationId();
+
+        Product product = productRepo.findProductByIdWhereIsDeletedEqualsZero(orgId, productId)
                 .orElseThrow(() -> new RuntimeException("Product by ID : " + productId + " not found."));
 
-        final List<Stock> stockList = stockRepo.findStocksByProductByDate(product.getId(), date);
+        final List<Stock> stockList = stockRepo.findStocksByProductByDate(orgId, product.getId(), date);
 
         Double totalPurchased = stockList.stream()
                 .filter(stock -> stock.getStockTransactionType() == StockTransactionType.PURCHASE)
@@ -66,16 +77,13 @@ public class StockService {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Stock Data");
 
-            // ===== Styles =====
-            // Title style (bold, center, larger font)
             CellStyle titleStyle = workbook.createCellStyle();
             Font titleFont = workbook.createFont();
             titleFont.setBold(true);
-            titleFont.setFontHeightInPoints((short) 14); // normal is 11 or 12
+            titleFont.setFontHeightInPoints((short) 14);
             titleStyle.setFont(titleFont);
             titleStyle.setAlignment(HorizontalAlignment.CENTER);
 
-            // Subtitle style (normal font, left aligned)
             CellStyle subtitleStyle = workbook.createCellStyle();
             Font subtitleFont = workbook.createFont();
             subtitleFont.setBold(true);
@@ -83,26 +91,19 @@ public class StockService {
             subtitleStyle.setFont(subtitleFont);
             subtitleStyle.setAlignment(HorizontalAlignment.LEFT);
 
-            // ===== Row 1: Title =====
             Row titleRow = sheet.createRow(0);
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("Date Wise Stock Report");
             titleCell.setCellStyle(titleStyle);
-
-            // Merge across 5 columns (0–4)
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 4));
 
-            // ===== Row 2: Subtitle (Report Date) =====
             Row dateRow = sheet.createRow(1);
             Cell dateCell = dateRow.createCell(0);
             dateCell.setCellValue("Report Date: " + currentDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
             dateCell.setCellStyle(subtitleStyle);
-
             sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 4));
 
-            // ===== Header Row (Row 3) =====
             Row headerRow = sheet.createRow(3);
-            // Create header cells with style
             String[] headers = {"Product Name", "Opening Stock", "Purchased", "Sold", "Remaining Stock"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
@@ -110,7 +111,6 @@ public class StockService {
                 cell.setCellStyle(subtitleStyle);
             }
 
-            // ===== Data Rows start from Row 4 =====
             int rowIdx = 4;
             for (StockPerProductByDateResponse stock : stockList) {
                 Row row = sheet.createRow(rowIdx++);
@@ -121,7 +121,6 @@ public class StockService {
                 row.createCell(4).setCellValue(stock.getRemainingStock());
             }
 
-            // Auto-size all columns
             for (int i = 0; i <= 4; i++) {
                 sheet.autoSizeColumn(i);
             }
@@ -130,5 +129,4 @@ public class StockService {
             return out.toByteArray();
         }
     }
-
 }

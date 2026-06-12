@@ -9,9 +9,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MeasurementUnitRepo extends JpaRepository<MeasurementUnit, Long> {
-    @Query("SELECT mu FROM MeasurementUnit mu WHERE mu.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    List<MeasurementUnit> findMeasurementUnitsWhereIsDeletedEqualsZero();
 
-    @Query("SELECT mu FROM MeasurementUnit mu WHERE mu.id = :measurementUnitId AND mu.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    Optional<MeasurementUnit> findMeasurementUnitByIdWhereIsDeletedEqualsZero(@Param("measurementUnitId") Long id);
+    @Query("SELECT mu FROM MeasurementUnit mu WHERE mu.organization.id = :orgId AND mu.isDeleted = 0")
+    List<MeasurementUnit> findMeasurementUnitsWhereIsDeletedEqualsZero(@Param("orgId") Long orgId);
+
+    @Query("SELECT mu FROM MeasurementUnit mu WHERE mu.organization.id = :orgId AND mu.id = :measurementUnitId AND mu.isDeleted = 0")
+    Optional<MeasurementUnit> findMeasurementUnitByIdWhereIsDeletedEqualsZero(@Param("orgId") Long orgId, @Param("measurementUnitId") Long id);
 }

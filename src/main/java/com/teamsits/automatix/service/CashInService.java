@@ -15,6 +15,7 @@ import com.teamsits.automatix.repository.SalesRepo;
 import com.teamsits.automatix.repository.master_data_repository.BankRepo;
 import com.teamsits.automatix.repository.master_data_repository.PartyRepo;
 import com.teamsits.automatix.utils.ApplicationConstant;
+import com.teamsits.automatix.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,41 +33,49 @@ public class CashInService {
     private final SalesRepo salesRepo;
     private final CashOutRepo cashOutRepo;
     private final ReceivableRepo receivableRepo;
+    private final SecurityUtils securityUtils;
 
     public List<CashInResponse> getCashInsByDate(LocalDate date) {
-        return cashInRepo.findCashInsByDateWhereIsDeletedEqualsZero(date)
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return cashInRepo.findCashInsByDateWhereIsDeletedEqualsZero(orgId, date)
                 .stream()
                 .map(CashInResponse::new)
                 .collect(Collectors.toList());
     }
 
     public Optional<CashInResponse> getCashInById(Long id) {
-        return cashInRepo.findCashInByIdWhereIsDeletedEqualsZero(id).map(CashInResponse::new);
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return cashInRepo.findCashInByIdWhereIsDeletedEqualsZero(orgId, id).map(CashInResponse::new);
     }
 
     public Optional<CashInResponse> addCashIn(CashInRequest cashInRequest) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         Party party = null;
         Bank bank = null;
 
         if (cashInRequest.getBankId() != null) {
-            bank = bankRepo.findBankByIdWhereIsDeletedEqualsZero(cashInRequest.getBankId())
+            bank = bankRepo.findBankByIdWhereIsDeletedEqualsZero(orgId, cashInRequest.getBankId())
                     .orElseThrow(() -> new RuntimeException("Bank by ID : " + cashInRequest.getBankId() + " not found."));
         } else if (cashInRequest.getPartyId() != null) {
-            party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(cashInRequest.getPartyId())
+            party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(orgId, cashInRequest.getPartyId())
                     .orElseThrow(() -> new RuntimeException("Party by ID : " + cashInRequest.getPartyId() + " not found."));
         }
 
         CashIn cashIn = new CashIn(cashInRequest, party, bank);
+        cashIn.setOrganization(securityUtils.getCurrentOrganization());
+        cashIn.setCreatedBy(securityUtils.getCurrentUserId());
+        cashIn.setUpdatedBy(securityUtils.getCurrentUserId());
         cashInRepo.save(cashIn);
 
         return Optional.of(new CashInResponse(cashIn));
     }
 
     public void deleteCashIn(Long id) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         if (cashInRepo.existsById(id)) {
             CashIn cashIn = cashInRepo
-                    .findCashInByIdWhereIsDeletedEqualsZero(id)
-                    .orElseThrow(() -> new RuntimeException("ReceiveBank not found."));
+                    .findCashInByIdWhereIsDeletedEqualsZero(orgId, id)
+                    .orElseThrow(() -> new RuntimeException("CashIn not found."));
 
             cashIn.setIsDeleted(ApplicationConstant.DOMAIN_STATUS_ONE);
             cashInRepo.save(cashIn);
@@ -74,6 +83,7 @@ public class CashInService {
     }
 
     public Optional<CashInResponse> updateCashIn(CashInRequest cashInRequest) {
+        Long orgId = securityUtils.getCurrentOrganizationId();
         Party party;
         Bank bank;
 
@@ -81,13 +91,13 @@ public class CashInService {
             party = null;
             bank = null;
         } else if (cashInRequest.getPartyId() != null) {
-            party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(cashInRequest.getPartyId())
-                    .orElseThrow(() -> new RuntimeException("Bank by ID : " + cashInRequest.getBankId() + " not found."));
+            party = partyRepo.findPartyByIdWhereIsDeletedEqualsZero(orgId, cashInRequest.getPartyId())
+                    .orElseThrow(() -> new RuntimeException("Party by ID : " + cashInRequest.getPartyId() + " not found."));
             bank = null;
         } else {
             party = null;
-            bank = bankRepo.findBankByIdWhereIsDeletedEqualsZero(cashInRequest.getBankId())
-                    .orElseThrow(() -> new RuntimeException("Party by ID : " + cashInRequest.getPartyId() + " not found."));
+            bank = bankRepo.findBankByIdWhereIsDeletedEqualsZero(orgId, cashInRequest.getBankId())
+                    .orElseThrow(() -> new RuntimeException("Bank by ID : " + cashInRequest.getBankId() + " not found."));
         }
 
         return cashInRepo.findById(cashInRequest.getId())
@@ -98,7 +108,7 @@ public class CashInService {
                     cashIn.setAmount(cashInRequest.getAmount());
                     cashIn.setMemoDate(cashInRequest.getMemoDate());
                     cashIn.setTransactionDate(cashInRequest.getTransactionDate());
-
+                    cashIn.setUpdatedBy(securityUtils.getCurrentUserId());
                     return cashIn;
                 })
                 .map(cashInRepo::save)
@@ -106,22 +116,26 @@ public class CashInService {
     }
 
     public Double getOpeningBalance(LocalDate date) {
-        return this.cashInRepo.getOpeningBalance(date);
+        return this.cashInRepo.getOpeningBalance(securityUtils.getCurrentOrganizationId(), date);
     }
 
     public double getTotalCashInByDate(LocalDate date) {
-        return cashInRepo.findCashInsByDateWhereIsDeletedEqualsZero(date).stream().mapToDouble(CashIn::getAmount).sum();
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return cashInRepo.findCashInsByDateWhereIsDeletedEqualsZero(orgId, date).stream().mapToDouble(CashIn::getAmount).sum();
     }
 
     public double getTotalSalesByDate(LocalDate date) {
-        return salesRepo.findSalesInfosByDateWhereIsDeletedEqualsZero(date).stream().mapToDouble(Sales::getAmount).sum();
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return salesRepo.findSalesInfosByDateWhereIsDeletedEqualsZero(orgId, date).stream().mapToDouble(Sales::getAmount).sum();
     }
 
     public double getTotalCashOutByDate(LocalDate date) {
-        return cashOutRepo.findCashOutsByDateWhereIsDeletedEqualsZero(date).stream().mapToDouble(CashOut::getAmount).sum();
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return cashOutRepo.findCashOutsByDateWhereIsDeletedEqualsZero(orgId, date).stream().mapToDouble(CashOut::getAmount).sum();
     }
 
     public double getTotalReceivableByDate(LocalDate date) {
-        return receivableRepo.findReceivablesByDateWhereIsDeletedEqualsZero(date).stream().mapToDouble(Receivable::getAmount).sum();
+        Long orgId = securityUtils.getCurrentOrganizationId();
+        return receivableRepo.findReceivablesByDateWhereIsDeletedEqualsZero(orgId, date).stream().mapToDouble(Receivable::getAmount).sum();
     }
 }

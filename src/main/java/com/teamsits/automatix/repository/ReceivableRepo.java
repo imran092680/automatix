@@ -10,9 +10,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReceivableRepo extends JpaRepository<Receivable, Long> {
-    @Query("SELECT r FROM Receivable r WHERE r.transactionDate = :date AND r.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO ORDER BY r.transactionDate ASC, r.id ASC")
-    List<Receivable> findReceivablesByDateWhereIsDeletedEqualsZero(@Param("date") LocalDate date);
 
-    @Query("SELECT r FROM Receivable r WHERE r.id = :rId AND r.isDeleted = com.teamsits.automatix.utils.ApplicationConstant.DOMAIN_STATUS_ZERO")
-    Optional<Receivable> findReceivableByIdWhereIsDeletedEqualsZero(@Param("rId") Long id);
+    @Query("SELECT r FROM Receivable r WHERE r.organization.id = :orgId AND r.transactionDate = :date AND r.isDeleted = 0 ORDER BY r.transactionDate ASC, r.id ASC")
+    List<Receivable> findReceivablesByDateWhereIsDeletedEqualsZero(@Param("orgId") Long orgId, @Param("date") LocalDate date);
+
+    @Query("SELECT r FROM Receivable r WHERE r.organization.id = :orgId AND r.id = :rId AND r.isDeleted = 0")
+    Optional<Receivable> findReceivableByIdWhereIsDeletedEqualsZero(@Param("orgId") Long orgId, @Param("rId") Long id);
 }

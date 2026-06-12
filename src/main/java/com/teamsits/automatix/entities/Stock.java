@@ -1,6 +1,6 @@
 package com.teamsits.automatix.entities;
 
-import com.teamsits.automatix.entities.common.CommonColumn;
+import com.teamsits.automatix.entities.common.TenantAuditBase;
 import com.teamsits.automatix.entities.master_entity.Product;
 import com.teamsits.automatix.enums.StockTransactionType;
 import com.teamsits.automatix.models.cash_out.CashOutRequest;
@@ -19,7 +19,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Stock extends CommonColumn {
+public class Stock extends TenantAuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
