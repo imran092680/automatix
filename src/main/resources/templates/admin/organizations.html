@@ -3,32 +3,36 @@
       th:replace="~{fragments/layout :: layout('Organizations', ~{::body/content})}">
 <body>
 <content>
-    <section>
+    <div class="panel">
         <h2>Create Organization</h2>
-        <form th:action="@{/admin/organizations}" method="post" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;">
-            <div>
-                <label>Name</label>
-                <input type="text" name="name" required>
+        <form th:action="@{/admin/organizations}" method="post">
+            <div class="form-row">
+                <div>
+                    <label>Name</label>
+                    <input type="text" name="name" required placeholder="Organization name">
+                </div>
+                <div>
+                    <label>Subscription</label>
+                    <select name="subscriptionType">
+                        <option th:each="st : ${subscriptionTypes}" th:value="${st}" th:text="${st}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label>Max Users <span style="font-size:11px;color:var(--muted)">(PER_USER only)</span></label>
+                    <input type="number" name="maxUsers" min="1" placeholder="Leave blank for unlimited">
+                </div>
+                <div>
+                    <label>Agreement Notes</label>
+                    <input type="text" name="agreementNotes" placeholder="Optional notes">
+                </div>
             </div>
-            <div>
-                <label>Subscription</label>
-                <select name="subscriptionType">
-                    <option th:each="st : ${subscriptionTypes}" th:value="${st}" th:text="${st}"></option>
-                </select>
+            <div style="margin-top:14px;">
+                <button type="submit" class="button">Create Organization</button>
             </div>
-            <div>
-                <label>Max Users (PER_USER only)</label>
-                <input type="number" name="maxUsers" min="1">
-            </div>
-            <div>
-                <label>Agreement Notes</label>
-                <input type="text" name="agreementNotes">
-            </div>
-            <button type="submit">Create</button>
         </form>
-    </section>
+    </div>
 
-    <section style="margin-top:2rem;">
+    <div class="panel">
         <h2>All Organizations</h2>
         <table>
             <thead>
@@ -37,32 +41,38 @@
                 <th>Name</th>
                 <th>Subscription</th>
                 <th>Max Users</th>
-                <th>Active</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="org : ${organizations}">
-                <td th:text="${org.id}"></td>
-                <td th:text="${org.name}"></td>
-                <td th:text="${org.subscriptionType}"></td>
-                <td th:text="${org.maxUsers != null ? org.maxUsers : 'Unlimited'}"></td>
-                <td th:text="${org.isActive ? 'Yes' : 'No'}"></td>
+                <td style="color:var(--muted);font-size:13px;" th:text="${org.id}"></td>
+                <td><strong th:text="${org.name}"></strong></td>
                 <td>
-                    <a th:href="@{/admin/organizations/{id}/users(id=${org.id})}">Users</a>
-                    &nbsp;
-                    <form th:action="@{/admin/organizations/{id}/delete(id=${org.id})}" method="post" style="display:inline;"
-                          onsubmit="return confirm('Deactivate this organization?')">
-                        <button type="submit">Deactivate</button>
-                    </form>
+                    <span class="badge amber" th:text="${org.subscriptionType}"></span>
+                </td>
+                <td style="color:var(--muted);" th:text="${org.maxUsers != null ? org.maxUsers : 'Unlimited'}"></td>
+                <td>
+                    <span th:if="${org.isActive}" class="badge green">Active</span>
+                    <span th:unless="${org.isActive}" class="badge red">Inactive</span>
+                </td>
+                <td>
+                    <div class="actions">
+                        <a th:href="@{/admin/organizations/{id}/users(id=${org.id})}" class="button secondary sm">Users</a>
+                        <form th:action="@{/admin/organizations/{id}/delete(id=${org.id})}" method="post" style="display:inline;"
+                              onsubmit="return confirm('Deactivate this organization?')">
+                            <button type="submit" class="button danger sm">Deactivate</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             <tr th:if="${#lists.isEmpty(organizations)}">
-                <td colspan="6">No organizations yet.</td>
+                <td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">No organizations yet.</td>
             </tr>
             </tbody>
         </table>
-    </section>
+    </div>
 </content>
 </body>
 </html>
